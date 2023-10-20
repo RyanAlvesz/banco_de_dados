@@ -54,13 +54,12 @@ create table professores
     telefone bigint,
     data_de_nascimento date not null,
     data_de_contratacao date not null,
-    endereco varchar(200) not null
 );
 
-insert into professores (nome, cpf, telefone, data_de_nascimento, data_de_contratacao, endereco) values
-("Bruno Gomes", 99999999999, 11999999999, "1996-05-01", "2023-01-09", "Rua Nove"),
-("Fernando Leonid", 10101010101, 11910101010, "1976-08-30", "1999-11-13", "Rua São Script"),
-("Vitor de Jesus", 11111111111, 11911111111, "1996-03-25", "2023-01-09", "Rua Java");
+insert into professores (nome, cpf, telefone, data_de_nascimento, data_de_contratacao) values
+("Bruno Gomes", 99999999999, 11999999999, "1996-05-01", "2023-01-09"),
+("Fernando Leonid", 10101010101, 11910101010, "1976-08-30", "1999-11-13"),
+("Vitor de Jesus", 11111111111, 11911111111, "1996-03-25", "2023-01-09");
 
 create table matriculas
 (
@@ -85,16 +84,17 @@ create table turmas
 	ano_escolar integer not null,
     disciplina_id integer,
     professor_id integer,
+    codigo_turma varchar(20),
     
 	foreign key (disciplina_id) references disciplinas(id),
     foreign key (professor_id) references professores(id)
     
 );
 
-insert into turmas (ano_escolar, disciplina_id, professor_id) values
-(2023, 1, 1),
-(2023, 2, 3),
-(2023, 3, 2);
+insert into turmas (ano_escolar, disciplina_id, professor_id, codigo_turma) values
+(2023, 1, 1, 'DS1AIT'),
+(2023, 2, 3, 'DS1BIT'),
+(2023, 3, 2, 'ELE1IT');
 
 create table notas
 (
@@ -174,3 +174,68 @@ insert into parcerias (nome_empresa, tipo_parceira) values
 ("Antilhas", "Estágio"),
 ("Puzzle Language School", "Projetos"),
 ("Google", "Estágio");
+
+-- 1: seleciona o nome das disciplinas de cada curso
+select disciplinas.nome_disciplina, cursos.nome_curso from disciplinas
+inner join cursos on disciplinas.id=cursos.id;
+
+-- 2: seleciona todos os alunos matriculados na turma do Professor Leonid
+select alunos.nome, matriculas.data_matricula from matriculas
+inner join alunos on matriculas.aluno_id=alunos.id
+inner join presencas on alunos.id=presencas.aluno_id
+inner join disciplinas on presencas.disciplina_id=disciplinas.id
+inner join turmas on disciplinas.id=turmas.disciplina_id
+inner join professores on turmas.professor_id=professores.id
+where professores.nome = "Fernando Leonid";
+
+-- 3: seleciona os eventos acadêmicos de cada curso e turma
+select e.tema, cursos.nome_curso from eventos_academicos as e
+inner join turmas on e.turma_id=turmas.id
+inner join disciplinas on turmas.disciplina_id=disciplinas.id
+inner join cursos on disciplinas.curso_id=cursos.id;
+
+-- 4: seleciona os professores que lecionam cada disciplinas em
+-- suas respectivas turmas
+select professores.nome, disciplinas.codigo_disciplina, turmas.id from professores
+inner join turmas on professores.id=turmas.professor_id
+inner join disciplinas on turmas.disciplina_id=disciplinas.id;
+
+-- 5: seleciona os alunos cujo nome começa com G ou que estiveram presentes 
+-- na aula do dia 06-10-2023
+select alunos.nome, presencas.presenca from alunos 
+inner join presencas on alunos.id=presencas.aluno_id
+where nome LIKE 'G%' OR presencas.presenca='PRESENTE' AND presencas.data_aula = '2023-10-06';
+
+-- 6: seleciona a média dos alunos
+select avg(notas.nota) as avg_notas from notas;
+
+-- RELATÓRIO DO DESEMPENHO
+select  matriculas.id as codigo_aluno, alunos.nome, avg(notas.nota) as media_escolar, cursos.nome_curso from notas 
+inner join alunos on notas.id=alunos.id
+inner join matriculas on alunos.id=matriculas.aluno_id
+inner join cursos on matriculas.curso_id=cursos.id
+group by alunos.nome;
+
+-- HISTÓRICO ESCOLAR
+select alunos.id, alunos.nome, cursos.nome_curso, presencas.data_aula, presencas.presenca from alunos
+inner join matriculas on alunos.id=matriculas.aluno_id
+join cursos on matriculas.curso_id=cursos.id
+join disciplinas on cursos.id=disciplinas.curso_id
+join presencas on disciplinas.id=presencas.disciplina_id
+group by alunos.id order by alunos.nome;
+
+-- AGENDA DE EVENTOS ACADÊMICOS
+select turmas.codigo_turma, eventos_academicos.data_evento, eventos_academicos.tema from eventos_academicos
+inner join turmas on eventos_academicos.turma_id=turmas.id;
+
+-- REGISTRO DE FREQUÊNCIA
+select alunos.nome, presencas.presenca, disciplinas.nome_disciplina, cursos.nome_curso from alunos
+inner join presencas on alunos.id=presencas.aluno_id
+inner join disciplinas on presencas.disciplina_id=disciplinas.id
+inner join cursos on disciplinas.curso_id=cursos.id;
+
+-- GESTÃO DE MATRÍCULAS E INSCRIÇÕES
+select alunos.nome, matriculas.id as codigo_aluno, matriculas.data_matricula, cursos.nome_curso from alunos
+inner join matriculas on alunos.id=matriculas.aluno_id
+inner join cursos on matriculas.curso_id=cursos.id;
+
